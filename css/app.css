@@ -243,8 +243,25 @@ select.pill { appearance: none; padding-right: 24px;
 }
 @media (min-width: 720px) {
   .sheet { left: auto; right: 10px; bottom: 10px; width: 420px; border-radius: 14px; border: 1px solid var(--edge); }
+  .sheet-head { border-radius: 13px 13px 0 0; }
 }
-.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+/* Pinned to the top of the sheet's own scroll area, so the close button stays
+   reachable once the squad list is long enough to scroll. The negative margins
+   bleed it to the sheet edges so content passes underneath rather than beside. */
+.sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: -12px -14px 6px;
+  padding: 12px 14px 10px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--edge);
+  border-radius: 16px 16px 0 0;
+}
 .sheet h2 { font-size: 16px; margin: 0; }
 .sheet h3 { font-size: 13px; color: var(--muted); margin: 16px 0 6px; text-transform: uppercase; letter-spacing: .06em; }
 .close { width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--panel-2); color: var(--ink); font-size: 14px; cursor: pointer; }
