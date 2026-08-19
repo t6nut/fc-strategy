@@ -109,6 +109,11 @@ select.pill { appearance: none; padding-right: 24px;
   background-repeat: no-repeat;
 }
 
+/* Wide screens have room for the common actions; phones keep them in the menu. */
+#quick button { font-size: 13px; min-width: 0; }
+#quick button.warn { color: #ff8f8f; }
+@media (max-width: 919px) { #quick { display: none; } }
+
 #colors { padding: 3px; }
 /* The dock has to hold six controls on a 360px phone, so it runs tight. */
 #dock { gap: 5px; padding: 5px 6px; }
@@ -270,6 +275,21 @@ select.pill { appearance: none; padding-right: 24px;
 .pcard .who { min-width: 0; }
 .pcard .nm { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pcard .ps { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* A block that bleeds to the sheet edges so it reads as its own section. */
+.section {
+  margin: 16px -14px calc(-18px - env(safe-area-inset-bottom));
+  padding: 4px 14px calc(18px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--edge);
+}
+.section.opponents {
+  background: #2a1616;
+  border-top-color: #7f2b2b;
+}
+.section.opponents h3 { color: #ff8f8f; }
+@media (min-width: 720px) {
+  .section { border-radius: 0 0 13px 13px; }
+}
 
 .plays { display: flex; flex-direction: column; gap: 6px; }
 .play { display: flex; align-items: center; gap: 8px; }

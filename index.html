@@ -23,6 +23,12 @@
     <button class="tool" data-tool="erase" title="Erase a drawing" aria-label="Erase">⌫</button>
   </div>
   <div class="seg" id="colors"></div>
+  <div class="seg" id="quick">
+    <button data-act="share">Share</button>
+    <button data-act="clearDraws">Clear drawings</button>
+    <button data-act="clearAway">Clear opponents</button>
+    <button data-act="reset" class="warn">Empty pitch</button>
+  </div>
   <span class="spacer"></span>
   <button id="undoBtn" class="icon" title="Undo" aria-label="Undo">↶</button>
   <button id="menuBtn" class="icon" title="Menu" aria-label="Menu">☰</button>
@@ -68,11 +74,13 @@
     <button id="teamNone" class="pill">Remove all</button>
   </div>
 
-  <h3>Opponents</h3>
-  <div class="row wrap">
-    <button id="oppOne" class="pill red">+ Add one</button>
-    <button id="oppTeam" class="pill red">Full team, mirrored</button>
-    <button id="oppNone" class="pill">Remove all</button>
+  <div class="section opponents">
+    <h3>Opponents team</h3>
+    <div class="row wrap">
+      <button id="oppOne" class="pill red">+ Add one</button>
+      <button id="oppTeam" class="pill red">Full team, mirrored</button>
+      <button id="oppNone" class="pill">Remove all</button>
+    </div>
   </div>
 </section>
 
@@ -105,10 +113,10 @@
   </div>
 
   <div class="row wrap">
-    <button id="shareBtn" class="pill primary">Copy share link</button>
-    <button id="clearDraws" class="pill">Clear drawings</button>
-    <button id="clearAway" class="pill">Clear opponents</button>
-    <button id="resetBtn" class="pill danger">Empty the pitch</button>
+    <button data-act="share" class="pill primary">Copy share link</button>
+    <button data-act="clearDraws" class="pill">Clear drawings</button>
+    <button data-act="clearAway" class="pill">Clear opponents</button>
+    <button data-act="reset" class="pill danger">Empty the pitch</button>
   </div>
 
   <h3>Saved plays</h3>

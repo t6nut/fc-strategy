@@ -15,10 +15,12 @@ Open `index.html` — that's the whole app.
   name from the jersey underneath. The roster lives in `js/players.js`.
 - **Opponents.** Red dots — add them one at a time, or drop in a full mirrored
   team in the selected shape.
-- **Line up.** Pick a shape and tap *Line up*: the app fills it from the squad
-  using each player's preferred positions. Sizes run 11v11 down to 5v5, and it
-  opens on 8v8 / 4-1-2. The same controls sit in the squad sheet, alongside
-  *Add on map* and *Remove all* for our side and for the opponents.
+- **Line up.** Pick a size and a shape and the pitch follows immediately — no
+  button to press. It opens on 8v8 / 4-1-2; 9v9 and 7v7 are the other sizes.
+  Changing the shape leaves a hand-placed red team alone, but changing the size
+  re-forms both, since the number of players changes. *Line up* is still there
+  for a manual re-apply, along with *Add on map* and *Remove all* in the squad
+  sheet, for our side and for the opponents.
 - **Drawings.** Solid arrow for a run, dashed arrow for a pass, freehand for
   everything else, in four colours. Erase taps a line away; undo steps back.
 - **Ball.** One tap.
@@ -48,6 +50,22 @@ Worker with KV (or Firebase / Supabase) storing one JSON blob per team code,
 polled every few seconds. That's roughly thirty lines on top of what's here —
 `js/store.js` is already the only file that touches storage, so it would drop
 in there.
+
+## Updates and the offline cache
+
+The service worker is **network first**: it always tries the server, and only
+falls back to its cache when there's no signal. That's deliberate. The first
+version cached first and only fell back to the network, which meant a deploy
+never reached anyone who already had the app open — you had to hard-refresh to
+see new code.
+
+So a normal reload picks up a deploy. The one exception is the reload that
+carries this change itself: a browser still running the old cache-first worker
+serves the old page once while the new worker installs, and the reload after
+that is current. From then on it's a single reload, every time.
+
+If you ever need to be certain, DevTools → Application → Service Workers →
+Unregister, or Empty Cache and Hard Reload.
 
 ## Hosting it
 
@@ -79,7 +97,9 @@ sheet, the shirt labels and the auto line-up all follow:
 they land when you tap them onto the pitch from the squad list.
 
 Formations live in `js/formations.js`, as slot lists in normalised pitch
-coordinates (`x` from our goal line to theirs, `y` across the pitch).
+coordinates (`x` from our goal line to theirs, `y` across the pitch). The file
+still holds 11v11 and 5v5 shapes; `SIZES` at the top of `js/app.js` decides
+which sizes the picker offers, so putting them back is a one-line change.
 
 ## Layout
 

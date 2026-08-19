@@ -9,7 +9,8 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const r2 = (v) => Math.round(v * 10) / 10;
 
 const COLORS = ['#ffd23f', '#ffffff', '#ef4444', '#4fc3f7'];
-const SIZES = ['8', '11', '9', '7', '5'];
+// FORMATIONS still carries 11v11 and 5v5; only these are offered in the picker.
+const SIZES = ['8', '9', '7'];
 
 const defaultState = () => ({
   v: 1,
@@ -348,31 +349,56 @@ function renderRoster() {
   }).join('');
 }
 
-function applyFormation() {
-  const slots = FORMATIONS[state.size]?.[state.form];
+const currentSlots = () => FORMATIONS[state.size]?.[state.form];
+
+function layoutHome() {
+  const slots = currentSlots();
   if (!slots) return;
-  const before = snapshot();
   state.tokens = state.tokens.filter((t) => t.team !== 'home');
   for (const pick of autoLineup(slots, ROSTER)) {
     state.tokens.push({
       id: nextId(), team: 'home', nr: pick.player.nr, txt: pick.player.shirt, x: pick.x, y: pick.y,
     });
   }
+}
+
+function layoutAway() {
+  const slots = currentSlots();
+  if (!slots) return;
+  state.tokens = state.tokens.filter((t) => t.team !== 'away');
+  // Mirror our shape through the centre spot so it reads as a team facing us.
+  slots.forEach(([, x, y], i) => {
+    state.tokens.push({ id: nextId(), team: 'away', nr: i + 1, x: 1 - x, y: 1 - y });
+  });
+}
+
+function applyFormation() {
+  const before = snapshot();
+  layoutHome();
   renderTokens();
   renderRoster();
   commit(before);
 }
 
 function addOpponents() {
-  const slots = FORMATIONS[state.size]?.[state.form];
-  if (!slots) return;
   const before = snapshot();
-  state.tokens = state.tokens.filter((t) => t.team !== 'away');
-  // Mirror our shape through the centre spot so it reads as a team facing us.
-  slots.forEach(([, x, y], i) => {
-    state.tokens.push({ id: nextId(), team: 'away', nr: i + 1, x: 1 - x, y: 1 - y });
-  });
+  layoutAway();
   renderTokens();
+  commit(before);
+}
+
+/**
+ * Redraw the pitch in the newly picked shape, so changing the size or the
+ * formation takes effect without a trip to the Line up button. Opponents only
+ * move when the team size changed, since that changes how many of them there
+ * should be - a formation change leaves a hand-placed red team alone.
+ */
+function reshape({ opponents }) {
+  const before = snapshot();
+  layoutHome();
+  if (opponents && state.tokens.some((t) => t.team === 'away')) layoutAway();
+  renderTokens();
+  renderRoster();
   commit(before);
 }
 
@@ -485,14 +511,14 @@ $$('[data-role="size"]').forEach((sel) => {
     state.size = e.target.value;
     state.form = Object.keys(FORMATIONS[state.size])[0];
     syncControls();
-    store.saveBoard(state);
+    reshape({ opponents: true });
   });
 });
 $$('[data-role="form"]').forEach((sel) => {
   sel.addEventListener('change', (e) => {
     state.form = e.target.value;
     syncControls();
-    store.saveBoard(state);
+    reshape({ opponents: false });
   });
 });
 
@@ -509,16 +535,14 @@ addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
 });
 
-$('#clearDraws').addEventListener('click', () => {
+function clearDrawings() {
   const before = snapshot();
   state.draws = [];
   renderDraws();
   commit(before);
-});
+}
 
-$('#clearAway').addEventListener('click', clearOpponents);
-
-$('#resetBtn').addEventListener('click', () => {
+function emptyPitch() {
   const before = snapshot();
   state.tokens = [];
   state.draws = [];
@@ -526,9 +550,9 @@ $('#resetBtn').addEventListener('click', () => {
   renderDraws();
   renderRoster();
   commit(before);
-});
+}
 
-$('#shareBtn').addEventListener('click', async () => {
+async function shareBoard() {
   const url = `${location.origin}${location.pathname}#s=${store.encodeState(state)}`;
   try {
     if (navigator.share && matchMedia('(pointer: coarse)').matches) {
@@ -540,6 +564,20 @@ $('#shareBtn').addEventListener('click', async () => {
   } catch {
     prompt('Copy this link:', url);
   }
+}
+
+// These four sit in the top bar on a wide screen and in the menu on a phone,
+// so they are wired by intent rather than by id.
+const ACTIONS = {
+  share: shareBoard,
+  clearDraws: clearDrawings,
+  clearAway: clearOpponents,
+  reset: emptyPitch,
+};
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-act]');
+  if (btn) ACTIONS[btn.dataset.act]?.();
 });
 
 // ---------------------------------------------------------------- saved plays
@@ -630,6 +668,10 @@ function syncControls() {
 
 function adopt(loaded) {
   state = { ...defaultState(), ...loaded };
+  if (!SIZES.includes(state.size)) {
+    state.size = defaultState().size;
+    state.form = defaultState().form;
+  }
   state.tokens = (state.tokens ?? []).map((t) => ({ ...t, id: t.id || nextId() }));
   seq = state.tokens.reduce((m, t) => Math.max(m, Number(String(t.id).slice(1)) || 0), 0) + 1;
   syncControls();
@@ -657,7 +699,18 @@ function init() {
   addEventListener('orientationchange', relayout);
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    // When a new worker takes over an already-controlled page, the code on
+    // screen is the old one - reload once so a deploy actually shows up.
+    const controlled = !!navigator.serviceWorker.controller;
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!controlled || reloading) return;
+      reloading = true;
+      location.reload();
+    });
+    navigator.serviceWorker.register('sw.js')
+      .then((reg) => reg.update())
+      .catch(() => {});
   }
 }
 
