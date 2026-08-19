@@ -40,7 +40,8 @@
 
 <nav id="dock">
   <button id="benchBtn" class="pill primary">Squad</button>
-  <select id="formSel" class="pill" aria-label="Formation"></select>
+  <select class="pill" data-role="size" aria-label="Team size"></select>
+  <select class="pill" data-role="form" aria-label="Formation"></select>
   <button id="applyForm" class="pill">Line up</button>
   <button id="addOpp" class="pill red" title="Add one opponent">+ ●</button>
   <button id="addBall" class="pill" title="Add or remove the ball">⚽</button>
@@ -55,11 +56,17 @@
   </div>
   <div class="row">
     <span>Team size</span>
-    <select id="sizeSel" class="pill" aria-label="Team size"></select>
+    <select class="pill" data-role="size" aria-label="Team size"></select>
+    <select class="pill" data-role="form" aria-label="Formation"></select>
   </div>
   <p class="hint">Tap a player to put them on the pitch or take them off.
      On the pitch, drag someone onto the red bar at the bottom to take them off.</p>
   <div id="roster" class="roster"></div>
+
+  <div class="row wrap">
+    <button id="teamAdd" class="pill primary">Add on map</button>
+    <button id="teamNone" class="pill">Remove all</button>
+  </div>
 
   <h3>Opponents</h3>
   <div class="row wrap">

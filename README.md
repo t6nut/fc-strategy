@@ -15,8 +15,10 @@ Open `index.html` — that's the whole app.
   name from the jersey underneath. The roster lives in `js/players.js`.
 - **Opponents.** Red dots — add them one at a time, or drop in a full mirrored
   team in the selected shape.
-- **Line up.** Pick a shape (11v11 down to 5v5) and tap *Line up*: the app fills
-  it from the squad using each player's preferred positions.
+- **Line up.** Pick a shape and tap *Line up*: the app fills it from the squad
+  using each player's preferred positions. Sizes run 11v11 down to 5v5, and it
+  opens on 8v8 / 4-1-2. The same controls sit in the squad sheet, alongside
+  *Add on map* and *Remove all* for our side and for the opponents.
 - **Drawings.** Solid arrow for a run, dashed arrow for a pass, freehand for
   everything else, in four colours. Erase taps a line away; undo steps back.
 - **Ball.** One tap.

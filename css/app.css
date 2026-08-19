@@ -110,7 +110,12 @@ select.pill { appearance: none; padding-right: 24px;
 }
 
 #colors { padding: 3px; }
-#addOpp { font-size: 15px; letter-spacing: -1px; }
+/* The dock has to hold six controls on a 360px phone, so it runs tight. */
+#dock { gap: 5px; padding: 5px 6px; }
+#dock .pill { padding: 0 9px; font-size: 13px; }
+#dock select.pill { padding-right: 21px; background-position: calc(100% - 11px) 15px, calc(100% - 6px) 15px; }
+#addOpp, #addBall { padding: 0; width: 36px; text-align: center; }
+#addOpp { font-size: 14px; letter-spacing: -1px; }
 #colors button { min-width: 26px; width: 26px; height: 26px; border-radius: 50%; padding: 0; }
 #colors button.on { outline: 2px solid var(--ink); outline-offset: 1px; background: none; }
 

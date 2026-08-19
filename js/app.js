@@ -9,14 +9,14 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const r2 = (v) => Math.round(v * 10) / 10;
 
 const COLORS = ['#ffd23f', '#ffffff', '#ef4444', '#4fc3f7'];
-const SIZES = ['11', '9', '8', '7', '5'];
+const SIZES = ['8', '11', '9', '7', '5'];
 
 const defaultState = () => ({
   v: 1,
   orient: 'auto',
   label: 'nr',
-  size: '11',
-  form: '4-4-2',
+  size: '8',
+  form: '4-1-2',
   color: COLORS[0],
   tokens: [],
   draws: [],
@@ -376,6 +376,14 @@ function addOpponents() {
   commit(before);
 }
 
+function clearOurTeam() {
+  const before = snapshot();
+  state.tokens = state.tokens.filter((t) => t.team !== 'home');
+  renderTokens();
+  renderRoster();
+  commit(before);
+}
+
 function addOneOpponent() {
   const before = snapshot();
   const reds = state.tokens.filter((t) => t.team === 'away');
@@ -470,19 +478,27 @@ $('#orientSeg').addEventListener('click', (e) => {
   store.saveBoard(state);
 });
 
-$('#sizeSel').innerHTML = SIZES.map((s) => `<option value="${s}">${s}v${s}</option>`).join('');
-$('#sizeSel').addEventListener('change', (e) => {
-  state.size = e.target.value;
-  state.form = Object.keys(FORMATIONS[state.size])[0];
-  syncControls();
-  store.saveBoard(state);
+const SIZE_OPTIONS = SIZES.map((s) => `<option value="${s}">${s}v${s}</option>`).join('');
+$$('[data-role="size"]').forEach((sel) => {
+  sel.innerHTML = SIZE_OPTIONS;
+  sel.addEventListener('change', (e) => {
+    state.size = e.target.value;
+    state.form = Object.keys(FORMATIONS[state.size])[0];
+    syncControls();
+    store.saveBoard(state);
+  });
 });
-$('#formSel').addEventListener('change', (e) => {
-  state.form = e.target.value;
-  store.saveBoard(state);
+$$('[data-role="form"]').forEach((sel) => {
+  sel.addEventListener('change', (e) => {
+    state.form = e.target.value;
+    syncControls();
+    store.saveBoard(state);
+  });
 });
 
 $('#applyForm').addEventListener('click', applyFormation);
+$('#teamAdd').addEventListener('click', applyFormation);
+$('#teamNone').addEventListener('click', clearOurTeam);
 $('#addOpp').addEventListener('click', addOneOpponent);
 $('#oppTeam').addEventListener('click', addOpponents);
 $('#oppOne').addEventListener('click', addOneOpponent);
@@ -602,11 +618,14 @@ function syncControls() {
   $$('#labelSeg button').forEach((b) => b.classList.toggle('on', b.dataset.label === state.label));
   $$('#orientSeg button').forEach((b) => b.classList.toggle('on', b.dataset.orient === state.orient));
   $$('#colors button').forEach((b) => b.classList.toggle('on', b.dataset.color === state.color));
-  $('#sizeSel').value = state.size;
-  const forms = Object.keys(FORMATIONS[state.size] ?? FORMATIONS['11']);
-  $('#formSel').innerHTML = forms.map((f) => `<option value="${f}">${f}</option>`).join('');
+  const forms = Object.keys(FORMATIONS[state.size] ?? FORMATIONS['8']);
   if (!forms.includes(state.form)) state.form = forms[0];
-  $('#formSel').value = state.form;
+  const options = forms.map((f) => `<option value="${f}">${f}</option>`).join('');
+  $$('[data-role="size"]').forEach((sel) => { sel.value = state.size; });
+  $$('[data-role="form"]').forEach((sel) => {
+    sel.innerHTML = options;
+    sel.value = state.form;
+  });
 }
 
 function adopt(loaded) {
