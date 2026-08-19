@@ -1,0 +1,14 @@
+{
+  "name": "FC Strategy Board",
+  "short_name": "FC Board",
+  "description": "Drag-and-drop tactics board for our Sunday league side.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d1b12",
+  "theme_color": "#0d1b12",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
