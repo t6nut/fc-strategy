@@ -41,32 +41,3 @@ export function deletePlay(name) {
   write(PLAYS_KEY, plays);
   return plays;
 }
-
-// --- sharing: the whole board packed into the URL, so no server is involved ---
-
-const toB64 = (str) => {
-  const bytes = new TextEncoder().encode(str);
-  let bin = '';
-  bytes.forEach((b) => { bin += String.fromCharCode(b); });
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-};
-
-const fromB64 = (b64) => {
-  const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
-  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-};
-
-export function encodeState(state) {
-  return toB64(JSON.stringify(state));
-}
-
-export function decodeState(hash) {
-  const m = /[#&]s=([A-Za-z0-9_-]+)/.exec(hash || '');
-  if (!m) return null;
-  try {
-    return JSON.parse(fromB64(m[1]));
-  } catch {
-    return null;
-  }
-}

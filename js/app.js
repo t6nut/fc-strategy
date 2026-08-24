@@ -2,13 +2,13 @@ import { ROSTER } from './players.js';
 import { FORMATIONS, autoLineup } from './formations.js';
 import { pitchSvg, toFrac, fromFrac, VIEW } from './pitch.js';
 import * as store from './store.js';
+import { COLORS, encodeState, decodeState } from './share.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const r2 = (v) => Math.round(v * 10) / 10;
 
-const COLORS = ['#ffd23f', '#ffffff', '#ef4444', '#4fc3f7'];
 // FORMATIONS still carries 11v11 and 5v5; only these are offered in the picker.
 const SIZES = ['8', '9', '7'];
 
@@ -553,7 +553,7 @@ function emptyPitch() {
 }
 
 async function shareBoard() {
-  const url = `${location.origin}${location.pathname}#s=${store.encodeState(state)}`;
+  const url = `${location.origin}${location.pathname}#s=${encodeState(state)}`;
   try {
     if (navigator.share && matchMedia('(pointer: coarse)').matches) {
       await navigator.share({ title: 'FC Strategy Board', url });
@@ -681,7 +681,7 @@ function adopt(loaded) {
 }
 
 function init() {
-  const shared = store.decodeState(location.hash);
+  const shared = decodeState(location.hash);
   const saved = store.loadBoard();
   adopt(shared ?? saved ?? defaultState());
   if (shared) {

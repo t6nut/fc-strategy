@@ -38,18 +38,30 @@ There are two mechanisms, and they cover different needs:
 device. Your phone remembers your board; it does not travel.
 
 **Copy share link** packs the entire board — every dot, every arrow, every
-setting — into the URL itself, base64 in the fragment. Send that link over
-WhatsApp and whoever opens it sees exactly your board, on any device, with no
-server and no sign-in. It is a snapshot, not a live link: if you move a dot
-afterwards, they still see the version you sent, and you send a fresh link.
+setting — into the URL itself. Send that link over WhatsApp and whoever opens
+it sees exactly your board, on any device, with no server and no sign-in. It is
+a snapshot, not a live link: if you move a dot afterwards, they still see the
+version you sent, and you send a fresh one.
 
-**What we don't have** is true sync — one board that every phone sees update
-live. That genuinely needs a server to hold the state; there is no way around
-it in a static page. If we ever want it, the cheapest version is a Cloudflare
-Worker with KV (or Firebase / Supabase) storing one JSON blob per team code,
-polled every few seconds. That's roughly thirty lines on top of what's here —
-`js/store.js` is already the only file that touches storage, so it would drop
-in there.
+The link is short because `js/share.js` earns it. Anything derivable is left
+out — token ids are regenerated on open, and shirt names are looked up from the
+squad by number — and what remains is written as fixed-width base64url fields
+that need no separators. A full board with both teams, the ball and two arrows
+comes to about 190 characters, against roughly 1900 for the base64'd JSON it
+replaced. Links handed out in the old format still open.
+
+**What we don't have** is anything that needs a server to remember something:
+true sync (one board every phone sees update live), a `/korner-lahipost` style
+named link, or a short `fcb.ee/x7k2` one. All three need somewhere to store the
+mapping between a name and a board — a static page has nowhere to put it. The
+share link avoids the problem by carrying the board itself rather than pointing
+at one.
+
+If we do want them, the cheapest version is a Cloudflare Worker or a Vercel
+function with a key-value store holding one JSON blob per code, which buys all
+three at once. That's a small amount of code, but it turns a file you can open
+from disk into a service someone has to keep running. `js/share.js` and
+`js/store.js` are the only files that would change.
 
 ## Updates and the offline cache
 
@@ -111,7 +123,8 @@ which sizes the picker offers, so putting them back is a one-line change.
 | `js/pitch.js` | Pitch geometry and the coordinate mapping |
 | `js/players.js` | The squad |
 | `js/formations.js` | Shapes, and the best-fit line-up |
-| `js/store.js` | Auto-save, saved plays, share links |
+| `js/store.js` | Auto-save and saved plays |
+| `js/share.js` | Packing a board into a link, and back out |
 | `sw.js` | Offline cache |
 
 Positions are stored normalised to the pitch (0–1 along its length and width),

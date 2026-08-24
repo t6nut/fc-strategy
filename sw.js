@@ -1,8 +1,9 @@
 // Bumping this name retires every older cache on activate.
-const CACHE = 'fcstrat-v2';
+const CACHE = 'fcstrat-v3';
 const SHELL = [
   './', './index.html', './css/app.css', './icon.svg', './manifest.webmanifest',
-  './js/app.js', './js/pitch.js', './js/players.js', './js/formations.js', './js/store.js',
+  './js/app.js', './js/pitch.js', './js/players.js', './js/formations.js',
+  './js/store.js', './js/share.js',
 ];
 
 self.addEventListener('install', (e) => {
