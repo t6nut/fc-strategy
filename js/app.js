@@ -142,22 +142,31 @@ function claimBall() {
   parkBall();
 }
 
-/** True when no opponent stands within PASS_LANE of the line between the two. */
-function laneIsClear(from, to) {
+/**
+ * Who, if anyone, is standing within PASS_LANE of the line between two
+ * players. An opponent there intercepts; one of your own gets in the way just
+ * as effectively, which is worth seeing rather than hiding, so the two are
+ * reported apart. An opponent wins - that lane is shut either way.
+ */
+function laneBlocker(from, to) {
   const ax = from.x * L;
   const ay = from.y * W;
   const dx = to.x * L - ax;
   const dy = to.y * W - ay;
   const len2 = dx * dx + dy * dy || 1;
-  return !state.tokens.some((o) => {
-    if (!isPlayer(o) || o.team === from.team) return false;
+  let ownInTheWay = false;
+  for (const o of state.tokens) {
+    if (!isPlayer(o) || o.id === from.id || o.id === to.id) continue;
     const ox = o.x * L;
     const oy = o.y * W;
     const along = ((ox - ax) * dx + (oy - ay) * dy) / len2;
     // Someone level with either player is a marker, not an interception.
-    if (along <= 0.05 || along >= 0.95) return false;
-    return Math.hypot(ox - (ax + along * dx), oy - (ay + along * dy)) < PASS_LANE;
-  });
+    if (along <= 0.05 || along >= 0.95) continue;
+    if (Math.hypot(ox - (ax + along * dx), oy - (ay + along * dy)) >= PASS_LANE) continue;
+    if (o.team !== from.team) return 'opponent';
+    ownInTheWay = true;
+  }
+  return ownInTheWay ? 'own' : null;
 }
 
 /** Nearest team-mate the ball can actually reach, and the pass drawn to them. */
@@ -165,12 +174,14 @@ function passFrom(owner) {
   const target = state.tokens
     .filter((t) => t.team === owner.team && t.id !== owner.id)
     .sort((a, b) => metres(owner, a) - metres(owner, b))
-    .find((t) => laneIsClear(owner, t));
+    .find((t) => !laneBlocker(owner, t));
 
   if (!target) { toast('Nobody free - every lane is blocked'); return; }
 
   const before = snapshot();
-  ballToken().on = target.id;
+  const ball = ballToken();
+  const from = { x: ball.x, y: ball.y };
+  ball.on = target.id;
   state.draws.push({
     type: 'pass',
     color: state.color,
@@ -178,19 +189,90 @@ function passFrom(owner) {
   });
   renderTokens();
   renderDraws();
+  flyBall(from);
   commit(before);
 }
 
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
 /**
- * Every team-mate the carrier could reach right now, nearest first. Shown live
- * while dragging so you can see the shape open and close as a player moves.
+ * Slide the ball from where it was to where it has just been put. State and
+ * layout are already final by the time this runs - the animation only offsets
+ * the ball backwards to its old spot and lets it travel into place, so an
+ * interrupted flight can never leave it somewhere it does not belong.
+ */
+function flyBall(from) {
+  const ball = ballToken();
+  const node = ball && tokenLayer.querySelector(`[data-id="${ball.id}"]`);
+  if (!node?.animate || reducedMotion.matches) return;
+
+  const start = toFrac(from.x, from.y, orient);
+  const end = toFrac(ball.x, ball.y, orient);
+  const dx = (start.fx - end.fx) * board.clientWidth;
+  const dy = (start.fy - end.fy) * board.clientHeight;
+  if (Math.hypot(dx, dy) < 3) return;
+
+  // Linear timing, but the ball covers most of the ground in the first half:
+  // it leaves quickly and settles, the way a played ball does.
+  const at = (k, scale) =>
+    `translate(-50%, -50%) translate(${r2(dx * k)}px, ${r2(dy * k)}px) scale(${scale})`;
+  const travel = Math.hypot((from.x - ball.x) * L, (from.y - ball.y) * W);
+  const flight = node.animate(
+    [
+      { transform: at(1, 1) },
+      { transform: at(0.35, 1.3), offset: 0.5 },
+      { transform: at(0, 1) },
+    ],
+    { duration: Math.min(700, 240 + travel * 9), easing: 'linear' },
+  );
+
+  // A ball in flight passes straight over other players; letting it swallow
+  // taps on the way would mean grabbing the ball when you meant the player.
+  node.style.pointerEvents = 'none';
+  const land = () => { node.style.pointerEvents = ''; };
+  flight.finished.then(land, land);
+}
+
+// Opacity follows the real distance in metres rather than the ranking, so a
+// line genuinely brightens as you carry the ball towards someone and dies away
+// as the gap opens. Ranking against the other lanes would rescale every line
+// whenever any one of them moved, which reads as flicker rather than distance.
+const FADE_NEAR = 8;         // metres, and closer: full strength
+const FADE_FAR = 45;         // metres, and further: as faint as it gets
+const FADE_FLOOR = 0.22;
+const BLOCKED_FLOOR = 0.4;   // black lines need more to stay legible on grass
+
+function fadeFor(dist, floor) {
+  const t = (dist - FADE_NEAR) / (FADE_FAR - FADE_NEAR);
+  return Math.min(1, Math.max(floor, 1 - t * (1 - floor)));
+}
+
+/**
+ * Every lane out of the carrier worth drawing, nearest first. Ones shut by a
+ * team-mate come back marked, to be drawn black; ones an opponent covers are
+ * left out entirely. Shown live while dragging, so the shape opens and closes
+ * as a player moves.
  */
 function passOptions(owner) {
-  return state.tokens
-    .filter((t) => t.team === owner.team && t.id !== owner.id && laneIsClear(owner, t))
-    .map((t) => ({ to: [t.x, t.y], dist: metres(owner, t) }))
-    .sort((a, b) => a.dist - b.dist)
-    .map((o, i) => ({ from: [owner.x, owner.y], to: o.to, best: i === 0 }));
+  const lanes = [];
+  for (const t of state.tokens) {
+    if (t.team !== owner.team || t.id === owner.id) continue;
+    const blocker = laneBlocker(owner, t);
+    if (blocker === 'opponent') continue;
+    lanes.push({
+      from: [owner.x, owner.y], to: [t.x, t.y],
+      dist: metres(owner, t), own: blocker === 'own',
+    });
+  }
+  lanes.sort((a, b) => a.dist - b.dist);
+
+  const nearestOpen = lanes.find((l) => !l.own);
+  for (const lane of lanes) {
+    lane.best = lane === nearestOpen;
+    lane.fade = lane.own ? fadeFor(lane.dist, BLOCKED_FLOOR)
+      : lane.best ? 1 : fadeFor(lane.dist, FADE_FLOOR);
+  }
+  return lanes;
 }
 
 let hintFrame = 0;
@@ -227,8 +309,10 @@ function onTokenTap(t) {
   if (ball.on === t.id) { passFrom(t); return; }
 
   const before = snapshot();
+  const from = { x: ball.x, y: ball.y };
   ball.on = t.id;
   renderTokens();
+  flyBall(from);
   commit(before);
 }
 
@@ -307,11 +391,13 @@ function hintMarkup(hint) {
   const pts = trimEnd(toPx([hint.from, hint.to]), radius + 2);
   const base = Math.max(2.5, Math.min(board.clientWidth, board.clientHeight) * 0.009);
   const weight = hint.best ? base : base * 0.7;
+  const stroke = hint.own ? '#000000' : state.color;
+  const opacity = Math.round(hint.fade * 100) / 100;
   const path = `M ${r2(pts[0][0])},${r2(pts[0][1])} L ${r2(pts[1][0])},${r2(pts[1][1])}`;
-  return `<g opacity="${hint.best ? 1 : 0.28}">
-    <path d="${path}" fill="none" stroke="${state.color}" stroke-width="${r2(weight)}"
+  return `<g opacity="${opacity}">
+    <path d="${path}" fill="none" stroke="${stroke}" stroke-width="${r2(weight)}"
       stroke-linecap="round" stroke-dasharray="${r2(weight * 3)} ${r2(weight * 2.4)}"/>
-    ${hint.best ? arrowHead(pts, state.color, weight) : ''}
+    ${hint.best ? arrowHead(pts, stroke, weight) : ''}
   </g>`;
 }
 
@@ -352,6 +438,7 @@ function attachDrag(node) {
     if (!t) return;
     e.preventDefault();
     e.stopPropagation();
+    node.getAnimations?.().forEach((a) => a.cancel());
 
     const before = snapshot();
     // Picking the ball up breaks possession; dropping it decides who has it.

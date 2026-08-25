@@ -28,13 +28,21 @@ Open `index.html` — that's the whole app.
   **Double tap the player holding it** and they play the ball to the nearest
   team-mate with a clear lane: an opponent standing within about three metres
   of the line blocks it, so the ball goes to whoever is actually free, and the
-  pass is drawn as a dashed arrow. Double tap anyone else and they take the
-  ball instead. If every lane is shut, it says so and nothing moves.
-- **Live pass options.** Drag the player holding the ball and every team-mate
-  he can still reach is drawn as you move — the nearest one bright, the rest
-  faded, blocked ones not drawn at all. It is the quickest way to see an angle
-  open up. The lines are only a preview: they vanish on release and are never
-  saved. Double tap plays the bright one.
+  ball travels to them, and the pass is drawn as a dashed arrow. Double tap
+  anyone else and they take the ball instead. If every lane is shut, it says so
+  and nothing moves.
+- **Live pass options.** Drag the player holding the ball and every lane out of
+  him is drawn as you move:
+  - **clear** — dashed in the current colour, fading with the real distance, so
+    a lane brightens as you carry the ball towards someone and dies away as the
+    gap opens. The nearest one is at full strength and carries the head; that
+    is the one a double tap plays.
+  - **shut by one of our own** — the same dashed line in black. A team-mate in
+    the way blocks a pass just as well as an opponent, and seeing which of your
+    own players is in the road is usually the point.
+  - **covered by an opponent** — not drawn at all.
+
+  The lines are only a preview: they vanish on release and are never saved.
 - **Saves itself.** Every move is written to the device straight away, so
   closing the tab or locking the phone loses nothing.
 - **Saved plays.** Name a set-up ("Corner — near post") and load it back later.
