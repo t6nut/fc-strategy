@@ -30,6 +30,11 @@ Open `index.html` — that's the whole app.
   of the line blocks it, so the ball goes to whoever is actually free, and the
   pass is drawn as a dashed arrow. Double tap anyone else and they take the
   ball instead. If every lane is shut, it says so and nothing moves.
+- **Live pass options.** Drag the player holding the ball and every team-mate
+  he can still reach is drawn as you move — the nearest one bright, the rest
+  faded, blocked ones not drawn at all. It is the quickest way to see an angle
+  open up. The lines are only a preview: they vanish on release and are never
+  saved. Double tap plays the bright one.
 - **Saves itself.** Every move is written to the device straight away, so
   closing the tab or locking the phone loses nothing.
 - **Saved plays.** Name a set-up ("Corner — near post") and load it back later.

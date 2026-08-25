@@ -32,6 +32,7 @@ let past = [];
 let tool = 'move';
 let orient = 'h';
 let live = null;      // drawing in progress
+let passHints = null; // pass options shown while the ball carrier is dragged
 let seq = 1;
 
 const nextId = () => `t${seq++}`;
@@ -180,6 +181,38 @@ function passFrom(owner) {
   commit(before);
 }
 
+/**
+ * Every team-mate the carrier could reach right now, nearest first. Shown live
+ * while dragging so you can see the shape open and close as a player moves.
+ */
+function passOptions(owner) {
+  return state.tokens
+    .filter((t) => t.team === owner.team && t.id !== owner.id && laneIsClear(owner, t))
+    .map((t) => ({ to: [t.x, t.y], dist: metres(owner, t) }))
+    .sort((a, b) => a.dist - b.dist)
+    .map((o, i) => ({ from: [owner.x, owner.y], to: o.to, best: i === 0 }));
+}
+
+let hintFrame = 0;
+
+/** Recompute the options at most once a frame - onMove fires far faster. */
+function scheduleHints(owner) {
+  if (hintFrame) return;
+  hintFrame = requestAnimationFrame(() => {
+    hintFrame = 0;
+    passHints = passOptions(owner);
+    renderDraws();
+  });
+}
+
+function clearHints() {
+  cancelAnimationFrame(hintFrame);
+  hintFrame = 0;
+  if (!passHints) return;
+  passHints = null;
+  renderDraws();
+}
+
 let lastTap = { id: null, at: 0 };
 
 /** Double tap a player: pass if they have the ball, take it if they don't. */
@@ -260,8 +293,32 @@ function shapeMarkup(d) {
     stroke-linecap="round" stroke-linejoin="round"${dash}/>${arrowHead(pts, d.color, weight)}`;
 }
 
+/** Pull a line's end back so its head lands outside the token it points at. */
+function trimEnd(pts, by) {
+  const [a, b] = pts;
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  if (len <= by) return pts;
+  const k = (len - by) / len;
+  return [a, [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]];
+}
+
+function hintMarkup(hint) {
+  const radius = (parseFloat(getComputedStyle(board).getPropertyValue('--tok')) || 32) / 2;
+  const pts = trimEnd(toPx([hint.from, hint.to]), radius + 2);
+  const base = Math.max(2.5, Math.min(board.clientWidth, board.clientHeight) * 0.009);
+  const weight = hint.best ? base : base * 0.7;
+  const path = `M ${r2(pts[0][0])},${r2(pts[0][1])} L ${r2(pts[1][0])},${r2(pts[1][1])}`;
+  return `<g opacity="${hint.best ? 1 : 0.28}">
+    <path d="${path}" fill="none" stroke="${state.color}" stroke-width="${r2(weight)}"
+      stroke-linecap="round" stroke-dasharray="${r2(weight * 3)} ${r2(weight * 2.4)}"/>
+    ${hint.best ? arrowHead(pts, state.color, weight) : ''}
+  </g>`;
+}
+
 function renderDraws() {
-  drawsSvg.innerHTML = state.draws.map(shapeMarkup).join('') + (live ? shapeMarkup(live) : '');
+  drawsSvg.innerHTML = state.draws.map(shapeMarkup).join('')
+    + (live ? shapeMarkup(live) : '')
+    + (passHints ?? []).map(hintMarkup).join('');
 }
 
 function distToShape(d, px, py) {
@@ -323,6 +380,7 @@ function attachDrag(node) {
         Object.assign(ball, ballSpotFor(t));
         const ballNode = tokenLayer.querySelector(`[data-id="${ball.id}"]`);
         if (ballNode) place(ballNode, ball.x, ball.y);
+        scheduleHints(t);
       }
       moved = true;
       trash.classList.toggle('hot', overTrash(ev));
@@ -334,6 +392,7 @@ function attachDrag(node) {
       node.removeEventListener('pointercancel', onUp);
       node.classList.remove('dragging');
       trash.classList.remove('show', 'hot');
+      clearHints();
       if (moved && overTrash(ev)) {
         // Taking a player off should not drag the ball to the bin with them:
         // leave it where it was when the drag started.
