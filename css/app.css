@@ -1,0 +1,363 @@
+:root {
+  --bg: #0d1b12;
+  --panel: #14261a;
+  --panel-2: #1c3324;
+  --edge: #2c4a35;
+  --ink: #eaf3ec;
+  --muted: #9db3a4;
+  --home: #4fc3f7;
+  --home-ink: #04293b;
+  --away: #ef4444;
+  --accent: #ffd23f;
+  --bar-h: 46px;
+  --dock-h: 52px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* ---------- bars ---------- */
+
+#bar, #dock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--panel);
+  border-color: var(--edge);
+  border-style: solid;
+  flex: 0 0 auto;
+}
+#bar { border-width: 0 0 1px; min-height: var(--bar-h); }
+#dock {
+  border-width: 1px 0 0;
+  min-height: var(--dock-h);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#dock::-webkit-scrollbar { display: none; }
+.spacer { flex: 1 1 auto; }
+
+.seg { display: flex; gap: 2px; background: var(--panel-2); border-radius: 9px; padding: 2px; }
+.seg button {
+  min-width: 36px;
+  height: 32px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+}
+.seg.small button { font-size: 13px; height: 28px; }
+.seg button.on { background: var(--home); color: var(--home-ink); font-weight: 600; }
+
+.icon {
+  width: 36px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--ink);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.pill {
+  flex: 0 0 auto;
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--ink);
+  font-size: 13.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pill.primary { background: var(--home); border-color: var(--home); color: var(--home-ink); font-weight: 600; }
+.pill.red { border-color: #7f2b2b; color: #ffb3b3; }
+.pill.danger { border-color: #7f2b2b; color: #ff8f8f; }
+.pill:disabled { opacity: .45; }
+
+select.pill { appearance: none; padding-right: 24px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+                    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 13px) 15px, calc(100% - 8px) 15px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* Wide screens have room for the common actions, in the same pills the menu
+   uses; anything narrower keeps them behind the burger. */
+#quick { display: flex; gap: 6px; }
+@media (max-width: 1059px) { #quick { display: none; } }
+
+#colors { padding: 3px; }
+/* The dock has to hold six controls on a 360px phone, so it runs tight. */
+#dock { gap: 5px; padding: 5px 6px; }
+#dock .pill { padding: 0 9px; font-size: 13px; }
+#dock select.pill { padding-right: 21px; background-position: calc(100% - 11px) 15px, calc(100% - 6px) 15px; }
+#addOpp, #addBall { padding: 0; width: 36px; text-align: center; }
+#addOpp { font-size: 14px; letter-spacing: -1px; }
+#colors button { min-width: 26px; width: 26px; height: 26px; border-radius: 50%; padding: 0; }
+#colors button.on { outline: 2px solid var(--ink); outline-offset: 1px; background: none; }
+
+/* ---------- pitch ---------- */
+
+#stage {
+  flex: 1 1 auto;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 6px;
+}
+
+#board {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px #0006;
+  touch-action: none;
+}
+
+#pitchLayer, #draws, #tokens { position: absolute; inset: 0; }
+#draws, #tokens { pointer-events: none; }
+
+.pitch { display: block; width: 100%; height: 100%; }
+.pitch .grass { fill: #2f8f4e; }
+.pitch .stripe { fill: #ffffff; opacity: .05; }
+.pitch .line { fill: none; stroke: #ffffff; stroke-width: .28; opacity: .85; }
+.pitch .spot { fill: #ffffff; opacity: .85; }
+.pitch .goal { fill: #ffffff22; stroke: #ffffff; stroke-width: .28; }
+
+/* ---------- tokens ---------- */
+
+.tok {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+  display: grid;
+  place-items: center;
+  width: var(--tok);
+  height: var(--tok);
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: calc(var(--tok) * .42);
+  letter-spacing: -.02em;
+  border: 2px solid #ffffffd0;
+  box-shadow: 0 2px 6px #0007;
+  will-change: left, top;
+}
+.tok.dragging { cursor: grabbing; z-index: 5; box-shadow: 0 8px 18px #000a; }
+.tok.has-ball { box-shadow: 0 0 0 3px var(--accent), 0 2px 6px #0007; }
+
+/* Injured or unavailable, but still in a lineup drawn up before they were. */
+.tok.unfit { border-color: #ff5252; border-style: dashed; filter: saturate(.45); }
+.tok.unfit::after {
+  content: '✚';
+  position: absolute;
+  top: -14%; right: -14%;
+  width: 46%; height: 46%;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: #ef4444; color: #fff;
+  font-size: calc(var(--tok) * .26); font-weight: 700; line-height: 1;
+}
+.tok.dragging .tok-label { display: none; }
+.tok.home { background: var(--home); color: var(--home-ink); }
+.tok.away { background: var(--away); color: #fff; }
+.tok.ball {
+  background: #fff radial-gradient(circle at 32% 30%, #fff 40%, #cfd8dc 100%);
+  border-color: #263238;
+  font-size: calc(var(--tok) * .6);
+  width: calc(var(--tok) * .68);
+  height: calc(var(--tok) * .68);
+}
+.tok .tok-label {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: calc(var(--tok) * .3);
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 3px #000, 0 0 2px #000;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.tok.name-mode { font-size: calc(var(--tok) * .3); }
+.tok.name-mode .tok-label { display: none; }
+
+/* ---------- trash ---------- */
+
+#trash {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--dock-h) + 12px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(20px);
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: #7f1d1dee;
+  border: 1px solid #ef4444;
+  color: #ffe4e4;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity .15s, transform .15s;
+  pointer-events: none;
+  z-index: 30;
+}
+#trash.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#trash.hot { background: #ef4444; color: #fff; }
+
+/* ---------- sheets ---------- */
+
+#scrim { position: fixed; inset: 0; background: #000a; z-index: 40; }
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  max-height: 78vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--panel);
+  border-top: 1px solid var(--edge);
+  border-radius: 16px 16px 0 0;
+  padding: 12px 14px calc(18px + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 30px #0008;
+}
+@media (min-width: 720px) {
+  .sheet { left: auto; right: 10px; bottom: 10px; width: 420px; border-radius: 14px; border: 1px solid var(--edge); }
+  .sheet-head { border-radius: 13px 13px 0 0; }
+}
+/* Pinned to the top of the sheet's own scroll area, so the close button stays
+   reachable once the squad list is long enough to scroll. The negative margins
+   bleed it to the sheet edges so content passes underneath rather than beside. */
+.sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: -12px -14px 6px;
+  padding: 12px 14px 10px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--edge);
+  border-radius: 16px 16px 0 0;
+}
+.sheet h2 { font-size: 16px; margin: 0; }
+.sheet h3 { font-size: 13px; color: var(--muted); margin: 16px 0 6px; text-transform: uppercase; letter-spacing: .06em; }
+.close { width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--panel-2); color: var(--ink); font-size: 14px; cursor: pointer; }
+.hint { color: var(--muted); font-size: 12.5px; margin: 4px 0 10px; }
+
+.row { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+.row > span:first-child { flex: 1 1 auto; font-size: 14px; }
+.row.wrap { flex-wrap: wrap; }
+.row input {
+  flex: 1 1 auto; min-width: 0; height: 34px; padding: 0 10px;
+  border: 1px solid var(--edge); border-radius: 8px;
+  background: var(--panel-2); color: var(--ink); font-size: 14px;
+}
+
+.roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.pcard {
+  display: flex; align-items: center;
+  border: 1px solid var(--edge); border-radius: 10px;
+  background: var(--panel-2); color: var(--ink); overflow: hidden;
+}
+.pcard .pick {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border: 0; background: none;
+  color: inherit; text-align: left; cursor: pointer; font: inherit;
+}
+.pcard.on { border-color: var(--home); background: #12384d; }
+
+/* Availability. Unavailable players stay in place rather than being hidden -
+   seeing the gap in a position is half the point. */
+.pcard.injured, .pcard.out { background: var(--panel); }
+.pcard.injured { border-color: #7f2b2b; }
+.pcard.injured .pick, .pcard.out .pick { opacity: .5; }
+.pcard.out .pick { text-decoration: line-through; text-decoration-thickness: 1px; }
+
+.pstatus {
+  flex: 0 0 auto; align-self: stretch; width: 34px;
+  border: 0; border-left: 1px solid var(--edge);
+  background: none; color: var(--muted);
+  font-size: 14px; line-height: 1; cursor: pointer;
+}
+.pcard.injured .pstatus { color: #ff6b6b; font-size: 16px; }
+.pcard.out .pstatus { color: var(--muted); }
+.pcard:not(.injured):not(.out) .pstatus { opacity: .35; }
+.pcard .num {
+  flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--home); color: var(--home-ink); font-weight: 700; font-size: 12px;
+}
+.pcard.on .num { box-shadow: 0 0 0 2px #fff6; }
+.pcard .who { min-width: 0; }
+.pcard .nm { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcard .ps { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* A block that bleeds to the sheet edges so it reads as its own section. */
+.section {
+  margin: 16px -14px calc(-18px - env(safe-area-inset-bottom));
+  padding: 4px 14px calc(18px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--edge);
+}
+.section.opponents {
+  background: #2a1616;
+  border-top-color: #7f2b2b;
+}
+.section.opponents h3 { color: #ff8f8f; }
+@media (min-width: 720px) {
+  .section { border-radius: 0 0 13px 13px; }
+}
+
+.plays { display: flex; flex-direction: column; gap: 6px; }
+.play { display: flex; align-items: center; gap: 8px; }
+.play button:first-child {
+  flex: 1 1 auto; text-align: left; height: 34px; padding: 0 12px;
+  border: 1px solid var(--edge); border-radius: 8px;
+  background: var(--panel-2); color: var(--ink); font-size: 14px; cursor: pointer;
+}
+.play .del { width: 34px; height: 34px; border: 1px solid #7f2b2b; border-radius: 8px; background: transparent; color: #ff8f8f; cursor: pointer; }
+
+#toast {
+  position: fixed; left: 50%; bottom: 90px; transform: translate(-50%, 10px);
+  background: #000c; border: 1px solid var(--edge); color: #fff;
+  padding: 8px 14px; border-radius: 999px; font-size: 13px;
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 60;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }

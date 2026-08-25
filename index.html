@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0d1b12">
+<meta name="description" content="Drag-and-drop tactics board for our Sunday league side.">
+<title>FC Strategy Board</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header id="bar">
+  <div class="seg" id="tools">
+    <button class="tool on" data-tool="move" title="Move players" aria-label="Move players">✥</button>
+    <button class="tool" data-tool="run" title="Run (solid arrow)" aria-label="Run arrow">↗</button>
+    <button class="tool" data-tool="pass" title="Pass (dashed arrow)" aria-label="Pass arrow">⇢</button>
+    <button class="tool" data-tool="free" title="Freehand" aria-label="Freehand">✎</button>
+    <button class="tool" data-tool="erase" title="Erase a drawing" aria-label="Erase">⌫</button>
+  </div>
+  <div class="seg" id="colors"></div>
+  <div id="quick">
+    <button data-act="share" class="pill primary">Copy share link</button>
+    <button data-act="clearDraws" class="pill">Clear drawings</button>
+    <button data-act="clearAway" class="pill">Clear opponents</button>
+    <button data-act="reset" class="pill danger">Empty the pitch</button>
+  </div>
+  <span class="spacer"></span>
+  <button id="undoBtn" class="icon" title="Undo" aria-label="Undo">↶</button>
+  <button id="menuBtn" class="icon" title="Menu" aria-label="Menu">☰</button>
+</header>
+
+<main id="stage">
+  <div id="board">
+    <div id="pitchLayer"></div>
+    <svg id="draws" aria-hidden="true"></svg>
+    <div id="tokens"></div>
+  </div>
+</main>
+
+<div id="trash" aria-hidden="true">Drop here to take off</div>
+
+<nav id="dock">
+  <button id="benchBtn" class="pill primary">Squad</button>
+  <select class="pill" data-role="size" aria-label="Team size"></select>
+  <select class="pill" data-role="form" aria-label="Formation"></select>
+  <button id="applyForm" class="pill">Line up</button>
+  <button id="addOpp" class="pill red" title="Add one opponent">+ ●</button>
+  <button id="addBall" class="pill" title="Add or remove the ball">⚽</button>
+</nav>
+
+<div id="scrim" hidden></div>
+
+<section id="sheet" class="sheet" hidden aria-label="Squad">
+  <div class="sheet-head">
+    <h2>Squad</h2>
+    <button class="close" data-close aria-label="Close">✕</button>
+  </div>
+  <div class="row">
+    <span>Team size</span>
+    <select class="pill" data-role="size" aria-label="Team size"></select>
+    <select class="pill" data-role="form" aria-label="Formation"></select>
+  </div>
+  <p class="hint">Tap a player to put them on the pitch or take them off.
+     On the pitch, drag someone onto the red bar at the bottom to take them off.
+     The mark on the right cycles <strong>✓</strong> fit &rarr;
+     <strong>✚</strong> injured &rarr; <strong>✕</strong> not playing;
+     anyone unavailable is skipped when the side lines up.</p>
+  <div id="roster" class="roster"></div>
+
+  <div class="row wrap">
+    <button id="teamAdd" class="pill primary">Add on map</button>
+    <button id="teamNone" class="pill">Remove all</button>
+  </div>
+
+  <div class="section opponents">
+    <h3>Opponents team</h3>
+    <div class="row wrap">
+      <button id="oppOne" class="pill red">+ Add one</button>
+      <button id="oppTeam" class="pill red">Full team, mirrored</button>
+      <button id="oppNone" class="pill">Remove all</button>
+    </div>
+  </div>
+</section>
+
+<section id="menu" class="sheet" hidden aria-label="Menu">
+  <div class="sheet-head">
+    <h2>Board</h2>
+    <button class="close" data-close aria-label="Close">✕</button>
+  </div>
+
+  <div class="row">
+    <span>Show on shirt</span>
+    <div class="seg small" id="labelSeg">
+      <button data-label="nr" class="on">Number</button>
+      <button data-label="name">Name</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <span>Pitch</span>
+    <div class="seg small" id="orientSeg">
+      <button data-orient="auto" class="on">Auto</button>
+      <button data-orient="v">Portrait</button>
+      <button data-orient="h">Landscape</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <span>Keep screen awake</span>
+    <button id="wakeBtn" class="pill">Off</button>
+  </div>
+
+  <div class="row wrap">
+    <button data-act="share" class="pill primary">Copy share link</button>
+    <button data-act="clearDraws" class="pill">Clear drawings</button>
+    <button data-act="clearAway" class="pill">Clear opponents</button>
+    <button data-act="reset" class="pill danger">Empty the pitch</button>
+  </div>
+
+  <h3>Saved plays</h3>
+  <div class="row">
+    <input id="playName" type="text" placeholder="e.g. Corner - near post" autocomplete="off">
+    <button id="savePlay" class="pill primary">Save</button>
+  </div>
+  <div id="plays" class="plays"></div>
+
+  <p class="hint">
+    The board saves itself on this device automatically. To get a set-up onto
+    someone else&rsquo;s phone, use <em>Copy share link</em> &mdash; the whole board travels
+    inside the link, no account needed.
+  </p>
+</section>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
