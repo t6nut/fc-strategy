@@ -272,7 +272,14 @@ function passOptions(owner) {
     lane.fade = lane.own ? fadeFor(lane.dist, BLOCKED_FLOOR)
       : lane.best ? 1 : fadeFor(lane.dist, FADE_FLOOR);
   }
-  return lanes;
+
+  // Returned in paint order rather than distance order: shut lanes go down
+  // first, then open ones furthest to nearest, so the pass you would actually
+  // play ends up on top of everything instead of under a black line.
+  return [
+    ...lanes.filter((l) => l.own).reverse(),
+    ...lanes.filter((l) => !l.own).reverse(),
+  ];
 }
 
 let hintFrame = 0;
