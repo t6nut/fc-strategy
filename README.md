@@ -18,7 +18,9 @@ Open `index.html` — that's the whole app.
   side lines up, and comes off the pitch when you rule them out. They stay
   visible in the list rather than disappearing — seeing the hole in a position
   is half the point. It travels in the share link, so a lineup nobody can field
-  never reaches anyone.
+  never reaches anyone. Anyone unavailable who is still on the pitch — from a
+  lineup drawn up before they were ruled out — is drawn faded, with a dashed
+  red edge and a red cross, so the board says it too.
 - **Opponents.** Red dots — add them one at a time, or drop in a full mirrored
   team in the selected shape.
 - **Line up.** Pick a size and a shape and the pitch follows immediately — no

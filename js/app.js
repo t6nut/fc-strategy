@@ -359,7 +359,11 @@ function renderTokens() {
     }
     const named = state.label === 'name' && t.team === 'home';
     const carrying = ballToken()?.on === t.id;
-    node.className = `tok ${t.team}${named ? ' name-mode' : ''}${carrying ? ' has-ball' : ''}`;
+    // Someone ruled out can still be sitting in a lineup drawn up before they
+    // were, so say so on the pitch rather than only in the squad sheet.
+    const unfit = t.team === 'home' && statusOf(t.nr);
+    node.className = `tok ${t.team}${named ? ' name-mode' : ''}`
+      + `${carrying ? ' has-ball' : ''}${unfit ? ' unfit' : ''}`;
     const caption = t.team === 'home' && !named && t.txt
       ? `<span class="tok-label">${esc(short(t.txt))}</span>` : '';
     node.innerHTML = `${tokenFace(t)}${caption}`;
