@@ -1,4 +1,4 @@
-import { ROSTER } from './players.js';
+import { ROSTER, DEFAULT_STATUS } from './players.js';
 import { FORMATIONS, autoLineup } from './formations.js';
 import { pitchSvg, toFrac, fromFrac, VIEW, L, W } from './pitch.js';
 import * as store from './store.js';
@@ -19,9 +19,20 @@ const defaultState = () => ({
   size: '8',
   form: '4-1-2',
   color: COLORS[0],
+  out: { ...DEFAULT_STATUS },
   tokens: [],
   draws: [],
 });
+
+// Availability, cycled from the squad sheet: fit to play, injured, or not
+// around this week. Kept on the board rather than in the roster file so it can
+// change week to week, and so a shared board carries who is missing.
+const STATUS_CYCLE = [null, 'injured', 'out'];
+const STATUS_MARK = { injured: '✚', out: '✕' };
+const STATUS_NAME = { injured: 'Injured', out: 'Not playing' };
+
+const statusOf = (nr) => state.out?.[nr] ?? null;
+const availableRoster = () => ROSTER.filter((p) => !statusOf(p.nr));
 
 const board = $('#board');
 const drawsSvg = $('#draws');
@@ -626,14 +637,33 @@ function togglePlayer(nr) {
 function renderRoster() {
   $('#roster').innerHTML = ROSTER.map((p) => {
     const on = state.tokens.some((t) => t.team === 'home' && t.nr === p.nr);
-    return `<button class="pcard${on ? ' on' : ''}" data-nr="${p.nr}">
-      <span class="num">${p.nr}</span>
-      <span class="who">
-        <span class="nm">${esc(p.shirt)}</span>
-        <span class="ps">${esc(p.pos.join(' / '))}</span>
-      </span>
-    </button>`;
+    const status = statusOf(p.nr);
+    const label = status ? STATUS_NAME[status] : 'Fit';
+    return `<div class="pcard${on ? ' on' : ''}${status ? ` ${status}` : ''}">
+      <button class="pick" data-nr="${p.nr}">
+        <span class="num">${p.nr}</span>
+        <span class="who">
+          <span class="nm">${esc(p.shirt)}</span>
+          <span class="ps">${esc(p.pos.join(' / '))}</span>
+        </span>
+      </button>
+      <button class="pstatus" data-status="${p.nr}" title="${label} - tap to change"
+        aria-label="${esc(p.shirt)}: ${label}">${STATUS_MARK[status] ?? '✓'}</button>
+    </div>`;
   }).join('');
+}
+
+/** Fit -> injured -> not playing -> fit. Anyone ruled out also leaves the pitch. */
+function cycleStatus(nr) {
+  const before = snapshot();
+  const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(statusOf(nr)) + 1) % STATUS_CYCLE.length];
+  state.out = { ...state.out };
+  if (next) state.out[nr] = next;
+  else delete state.out[nr];
+  if (next) state.tokens = state.tokens.filter((t) => !(t.team === 'home' && t.nr === nr));
+  renderTokens();
+  renderRoster();
+  commit(before);
 }
 
 const currentSlots = () => FORMATIONS[state.size]?.[state.form];
@@ -642,7 +672,7 @@ function layoutHome() {
   const slots = currentSlots();
   if (!slots) return;
   state.tokens = state.tokens.filter((t) => t.team !== 'home');
-  for (const pick of autoLineup(slots, ROSTER)) {
+  for (const pick of autoLineup(slots, availableRoster())) {
     state.tokens.push({
       id: nextId(), team: 'home', nr: pick.player.nr, txt: pick.player.shirt, x: pick.x, y: pick.y,
     });
@@ -751,8 +781,10 @@ $('#benchBtn').addEventListener('click', () => { renderRoster(); openSheet('shee
 $('#menuBtn').addEventListener('click', () => { renderPlays(); openSheet('menu'); });
 
 $('#roster').addEventListener('click', (e) => {
-  const card = e.target.closest('.pcard');
-  if (card) togglePlayer(Number(card.dataset.nr));
+  const mark = e.target.closest('[data-status]');
+  if (mark) { cycleStatus(Number(mark.dataset.status)); return; }
+  const pick = e.target.closest('[data-nr]');
+  if (pick) togglePlayer(Number(pick.dataset.nr));
 });
 
 $('#tools').addEventListener('click', (e) => {

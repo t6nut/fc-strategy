@@ -13,6 +13,12 @@ Open `index.html` — that's the whole app.
   It flips between portrait and landscape automatically, or you can pin it.
 - **Our squad.** Light blue dots carrying each player's shirt number, with the
   name from the jersey underneath. The roster lives in `js/players.js`.
+- **Who's available.** The mark on the right of each squad card cycles
+  ✓ fit → ✚ injured → ✕ not playing. Anyone unavailable is skipped when the
+  side lines up, and comes off the pitch when you rule them out. They stay
+  visible in the list rather than disappearing — seeing the hole in a position
+  is half the point. It travels in the share link, so a lineup nobody can field
+  never reaches anyone.
 - **Opponents.** Red dots — add them one at a time, or drop in a full mirrored
   team in the selected shape.
 - **Line up.** Pick a size and a shape and the pitch follows immediately — no
@@ -126,6 +132,14 @@ sheet, the shirt labels and the auto line-up all follow:
 `RCB`, `LWB`, `RWB`, `CDM`, `CM`, `CAM`, `LM`, `RM`, `LW`, `RW`, `ST`, `LS`,
 `RS`, `CF`. Put the position someone actually plays first — it decides where
 they land when you tap them onto the pitch from the squad list.
+
+The order of the array is the depth chart: where two players suit a slot
+equally well, whoever is listed first gets it, which is how the first-choice
+keeper is chosen. An optional `status: 'injured'` or `status: 'out'` marks a
+long-term absence — but it only seeds a board nobody has touched yet. Week to
+week, use the marks in the squad sheet instead; those live on the board, so
+they survive a reload, undo like anything else, and travel in a share link
+without a code change.
 
 Formations live in `js/formations.js`, as slot lists in normalised pitch
 coordinates (`x` from our goal line to theirs, `y` across the pitch). The file

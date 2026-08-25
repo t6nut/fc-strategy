@@ -279,11 +279,34 @@ select.pill { appearance: none; padding-right: 24px;
 
 .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
 .pcard {
+  display: flex; align-items: center;
+  border: 1px solid var(--edge); border-radius: 10px;
+  background: var(--panel-2); color: var(--ink); overflow: hidden;
+}
+.pcard .pick {
+  flex: 1 1 auto; min-width: 0;
   display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px; border: 1px solid var(--edge); border-radius: 10px;
-  background: var(--panel-2); color: var(--ink); text-align: left; cursor: pointer;
+  padding: 6px 8px; border: 0; background: none;
+  color: inherit; text-align: left; cursor: pointer; font: inherit;
 }
 .pcard.on { border-color: var(--home); background: #12384d; }
+
+/* Availability. Unavailable players stay in place rather than being hidden -
+   seeing the gap in a position is half the point. */
+.pcard.injured, .pcard.out { background: var(--panel); }
+.pcard.injured { border-color: #7f2b2b; }
+.pcard.injured .pick, .pcard.out .pick { opacity: .5; }
+.pcard.out .pick { text-decoration: line-through; text-decoration-thickness: 1px; }
+
+.pstatus {
+  flex: 0 0 auto; align-self: stretch; width: 34px;
+  border: 0; border-left: 1px solid var(--edge);
+  background: none; color: var(--muted);
+  font-size: 14px; line-height: 1; cursor: pointer;
+}
+.pcard.injured .pstatus { color: #ff6b6b; font-size: 16px; }
+.pcard.out .pstatus { color: var(--muted); }
+.pcard:not(.injured):not(.out) .pstatus { opacity: .35; }
 .pcard .num {
   flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
   display: grid; place-items: center;

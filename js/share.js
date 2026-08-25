@@ -37,6 +37,8 @@ const KIND_OUT = { run: 'r', pass: 'p', free: 'f' };
 const KIND_IN = { r: 'run', p: 'pass', f: 'free' };
 const ORIENT_OUT = { auto: 'a', h: 'h', v: 'v' };
 const ORIENT_IN = { a: 'auto', h: 'h', v: 'v' };
+const STATUS_OUT = { injured: 'i', out: 'o' };
+const STATUS_IN = { i: 'injured', o: 'out' };
 
 const TOKEN_LEN = 7;
 const shirtOf = (nr) => ROSTER.find((p) => p.nr === nr)?.shirt ?? '';
@@ -67,11 +69,16 @@ export function encodeState(state) {
     })
     .join('');
 
-  return ['1', flags, state.size, state.form, tokens, draws].join('~');
+  // Who is unavailable travels too - a lineup nobody can field is no use.
+  const missing = Object.entries(state.out ?? {})
+    .map(([nr, status]) => put12(clamp(Number(nr) || 0, 0, 4095)) + (STATUS_OUT[status] ?? 'o'))
+    .join('');
+
+  return ['1', flags, state.size, state.form, tokens, draws, missing].join('~');
 }
 
 function decodeCompact(payload) {
-  const [, flags = 'an0', size = '8', form = '4-1-2', tokenBlob = '', drawBlob = ''] =
+  const [, flags = 'an0', size = '8', form = '4-1-2', tokenBlob = '', drawBlob = '', missingBlob = ''] =
     payload.split('~');
 
   const tokens = [];
@@ -108,8 +115,14 @@ function decodeCompact(payload) {
     i = end;
   }
 
+  const out = {};
+  for (let i = 0; i + 3 <= missingBlob.length; i += 3) {
+    out[get12(missingBlob, i)] = STATUS_IN[missingBlob[i + 2]] ?? 'out';
+  }
+
   return {
     v: 1,
+    out,
     orient: ORIENT_IN[flags[0]] ?? 'auto',
     label: flags[1] === 'm' ? 'name' : 'nr',
     color: COLORS[IDX.get(flags[2]) ?? 0] ?? COLORS[0],
