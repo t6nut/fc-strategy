@@ -46,9 +46,15 @@ export function encodeState(state) {
     + (state.label === 'name' ? 'm' : 'n')
     + A[Math.max(0, COLORS.indexOf(state.color))];
 
+  // The ball has no shirt number, so its number field carries who is holding
+  // it instead - the owner's position in this list, offset by one so 0 is free.
+  const slot = new Map((state.tokens ?? []).map((t, i) => [t.id, i + 1]));
   const tokens = (state.tokens ?? [])
-    .map((t) => (TEAM_OUT[t.team] ?? 'h') + put12(clamp(t.nr ?? 0, 0, 4095))
-      + putPos(t.x) + putPos(t.y))
+    .map((t) => {
+      const held = t.team === 'ball' ? (slot.get(t.on) ?? 0) : (t.nr ?? 0);
+      return (TEAM_OUT[t.team] ?? 'h') + put12(clamp(held, 0, 4095))
+        + putPos(t.x) + putPos(t.y);
+    })
     .join('');
 
   const draws = (state.draws ?? [])
@@ -69,16 +75,23 @@ function decodeCompact(payload) {
     payload.split('~');
 
   const tokens = [];
+  const held = [];
   for (let i = 0; i + TOKEN_LEN <= tokenBlob.length; i += TOKEN_LEN) {
     const team = TEAM_IN[tokenBlob[i]] ?? 'home';
     const nr = get12(tokenBlob, i + 1);
+    if (team === 'ball') held.push([tokens.length, nr]);
     tokens.push({
+      id: `t${tokens.length + 1}`,
       team,
       nr: team === 'ball' ? undefined : nr,
       txt: team === 'home' ? shirtOf(nr) : undefined,
       x: getPos(tokenBlob, i + 3),
       y: getPos(tokenBlob, i + 5),
     });
+  }
+  // Resolve possession once every token exists and has an id.
+  for (const [ballAt, ownerSlot] of held) {
+    tokens[ballAt].on = tokens[ownerSlot - 1]?.id ?? null;
   }
 
   const draws = [];

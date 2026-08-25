@@ -176,6 +176,7 @@ select.pill { appearance: none; padding-right: 24px;
   will-change: left, top;
 }
 .tok.dragging { cursor: grabbing; z-index: 5; box-shadow: 0 8px 18px #000a; }
+.tok.has-ball { box-shadow: 0 0 0 3px var(--accent), 0 2px 6px #0007; }
 .tok.dragging .tok-label { display: none; }
 .tok.home { background: var(--home); color: var(--home-ink); }
 .tok.away { background: var(--away); color: #fff; }

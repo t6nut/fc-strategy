@@ -1,6 +1,6 @@
 import { ROSTER } from './players.js';
 import { FORMATIONS, autoLineup } from './formations.js';
-import { pitchSvg, toFrac, fromFrac, VIEW } from './pitch.js';
+import { pitchSvg, toFrac, fromFrac, VIEW, L, W } from './pitch.js';
 import * as store from './store.js';
 import { COLORS, encodeState, decodeState } from './share.js';
 
@@ -99,7 +99,108 @@ function tokenFace(t) {
 
 const short = (name) => (name && name.length > 9 ? `${name.slice(0, 8)}.` : name || '');
 
+// --- the ball ------------------------------------------------------------
+// Distances here are in metres rather than normalised units: the pitch is
+// 105 x 68, so a normalised step sideways is not the same length as one up the
+// pitch, and "is anyone standing in the way" has to be judged on the ground.
+const BALL_OFF_X = 3.4;   // where the ball sits relative to whoever has it
+const BALL_OFF_Y = 2.4;
+const BALL_REACH = 7;     // drop the ball this close and a player takes it
+const PASS_LANE = 3;      // an opponent this near the line blocks the pass
+
+const metres = (a, b) => Math.hypot((a.x - b.x) * L, (a.y - b.y) * W);
+const ballToken = () => state.tokens.find((t) => t.team === 'ball');
+const isPlayer = (t) => t.team === 'home' || t.team === 'away';
+
+const ballSpotFor = (t) => ({
+  x: t.x + (t.team === 'away' ? -BALL_OFF_X : BALL_OFF_X) / L,
+  y: t.y + BALL_OFF_Y / W,
+});
+
+/** Keep the ball glued to its owner, and let go if that owner has left. */
+function parkBall() {
+  const ball = ballToken();
+  if (!ball?.on) return;
+  const owner = state.tokens.find((t) => t.id === ball.on);
+  if (!owner) { ball.on = null; return; }
+  Object.assign(ball, ballSpotFor(owner));
+}
+
+/** After the ball is dropped, hand it to whoever is standing close enough. */
+function claimBall() {
+  const ball = ballToken();
+  if (!ball) return;
+  let best = null;
+  let bestDist = BALL_REACH;
+  for (const t of state.tokens) {
+    if (!isPlayer(t)) continue;
+    const d = metres(t, ball);
+    if (d < bestDist) { bestDist = d; best = t; }
+  }
+  ball.on = best?.id ?? null;
+  parkBall();
+}
+
+/** True when no opponent stands within PASS_LANE of the line between the two. */
+function laneIsClear(from, to) {
+  const ax = from.x * L;
+  const ay = from.y * W;
+  const dx = to.x * L - ax;
+  const dy = to.y * W - ay;
+  const len2 = dx * dx + dy * dy || 1;
+  return !state.tokens.some((o) => {
+    if (!isPlayer(o) || o.team === from.team) return false;
+    const ox = o.x * L;
+    const oy = o.y * W;
+    const along = ((ox - ax) * dx + (oy - ay) * dy) / len2;
+    // Someone level with either player is a marker, not an interception.
+    if (along <= 0.05 || along >= 0.95) return false;
+    return Math.hypot(ox - (ax + along * dx), oy - (ay + along * dy)) < PASS_LANE;
+  });
+}
+
+/** Nearest team-mate the ball can actually reach, and the pass drawn to them. */
+function passFrom(owner) {
+  const target = state.tokens
+    .filter((t) => t.team === owner.team && t.id !== owner.id)
+    .sort((a, b) => metres(owner, a) - metres(owner, b))
+    .find((t) => laneIsClear(owner, t));
+
+  if (!target) { toast('Nobody free - every lane is blocked'); return; }
+
+  const before = snapshot();
+  ballToken().on = target.id;
+  state.draws.push({
+    type: 'pass',
+    color: state.color,
+    pts: [[owner.x, owner.y], [target.x, target.y]],
+  });
+  renderTokens();
+  renderDraws();
+  commit(before);
+}
+
+let lastTap = { id: null, at: 0 };
+
+/** Double tap a player: pass if they have the ball, take it if they don't. */
+function onTokenTap(t) {
+  const now = Date.now();
+  const isDouble = lastTap.id === t.id && now - lastTap.at < 350;
+  lastTap = { id: t.id, at: isDouble ? 0 : now };
+  if (!isDouble || !isPlayer(t)) return;
+
+  const ball = ballToken();
+  if (!ball) { toast('No ball on the pitch yet'); return; }
+  if (ball.on === t.id) { passFrom(t); return; }
+
+  const before = snapshot();
+  ball.on = t.id;
+  renderTokens();
+  commit(before);
+}
+
 function renderTokens() {
+  parkBall();
   const seen = new Set();
   for (const t of state.tokens) {
     seen.add(t.id);
@@ -111,7 +212,8 @@ function renderTokens() {
       attachDrag(node);
     }
     const named = state.label === 'name' && t.team === 'home';
-    node.className = `tok ${t.team}${named ? ' name-mode' : ''}`;
+    const carrying = ballToken()?.on === t.id;
+    node.className = `tok ${t.team}${named ? ' name-mode' : ''}${carrying ? ' has-ball' : ''}`;
     const caption = t.team === 'home' && !named && t.txt
       ? `<span class="tok-label">${esc(short(t.txt))}</span>` : '';
     node.innerHTML = `${tokenFace(t)}${caption}`;
@@ -195,6 +297,8 @@ function attachDrag(node) {
     e.stopPropagation();
 
     const before = snapshot();
+    // Picking the ball up breaks possession; dropping it decides who has it.
+    if (t.team === 'ball') t.on = null;
     const rect = board.getBoundingClientRect();
     const start = toFrac(t.x, t.y, orient);
     const grabX = e.clientX - (rect.left + start.fx * rect.width);
@@ -214,6 +318,12 @@ function attachDrag(node) {
       t.x = p.x;
       t.y = p.y;
       place(node, t.x, t.y);
+      const ball = ballToken();
+      if (ball?.on === t.id) {
+        Object.assign(ball, ballSpotFor(t));
+        const ballNode = tokenLayer.querySelector(`[data-id="${ball.id}"]`);
+        if (ballNode) place(ballNode, ball.x, ball.y);
+      }
       moved = true;
       trash.classList.toggle('hot', overTrash(ev));
     };
@@ -225,12 +335,23 @@ function attachDrag(node) {
       node.classList.remove('dragging');
       trash.classList.remove('show', 'hot');
       if (moved && overTrash(ev)) {
+        // Taking a player off should not drag the ball to the bin with them:
+        // leave it where it was when the drag started.
+        const ball = ballToken();
+        if (ball?.on === t.id) {
+          const was = JSON.parse(before).tokens.find((x) => x.id === ball.id);
+          if (was) { ball.x = was.x; ball.y = was.y; }
+          ball.on = null;
+        }
         state.tokens = state.tokens.filter((x) => x.id !== t.id);
         renderTokens();
         renderRoster();
         commit(before);
       } else if (moved) {
+        if (t.team === 'ball') { claimBall(); renderTokens(); }
         commit(before);
+      } else {
+        onTokenTap(t);
       }
     };
 

@@ -23,7 +23,13 @@ Open `index.html` — that's the whole app.
   sheet, for our side and for the opponents.
 - **Drawings.** Solid arrow for a run, dashed arrow for a pass, freehand for
   everything else, in four colours. Erase taps a line away; undo steps back.
-- **Ball.** One tap.
+- **The ball.** One tap to put it on. Drop it next to someone and they take it
+  — a gold ring marks who has it, and it travels with them when you drag them.
+  **Double tap the player holding it** and they play the ball to the nearest
+  team-mate with a clear lane: an opponent standing within about three metres
+  of the line blocks it, so the ball goes to whoever is actually free, and the
+  pass is drawn as a dashed arrow. Double tap anyone else and they take the
+  ball instead. If every lane is shut, it says so and nothing moves.
 - **Saves itself.** Every move is written to the device straight away, so
   closing the tab or locking the phone loses nothing.
 - **Saved plays.** Name a set-up ("Corner — near post") and load it back later.
