@@ -196,15 +196,19 @@ function passFrom(owner) {
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 /**
- * Slide the ball from where it was to where it has just been put. State and
+ * Fly the ball from where it was to where it has just been put. State and
  * layout are already final by the time this runs - the animation only offsets
  * the ball backwards to its old spot and lets it travel into place, so an
  * interrupted flight can never leave it somewhere it does not belong.
+ *
+ * Reduced motion shortens the flight rather than removing it. Where the ball
+ * went is the substance of the interaction, not decoration: teleporting it
+ * loses the one thing the movement is there to say.
  */
 function flyBall(from) {
   const ball = ballToken();
   const node = ball && tokenLayer.querySelector(`[data-id="${ball.id}"]`);
-  if (!node?.animate || reducedMotion.matches) return;
+  if (!node?.animate) return;
 
   const start = toFrac(from.x, from.y, orient);
   const end = toFrac(ball.x, ball.y, orient);
@@ -212,18 +216,25 @@ function flyBall(from) {
   const dy = (start.fy - end.fy) * board.clientHeight;
   if (Math.hypot(dx, dy) < 3) return;
 
-  // Linear timing, but the ball covers most of the ground in the first half:
-  // it leaves quickly and settles, the way a played ball does.
   const at = (k, scale) =>
     `translate(-50%, -50%) translate(${r2(dx * k)}px, ${r2(dy * k)}px) scale(${scale})`;
   const travel = Math.hypot((from.x - ball.x) * L, (from.y - ball.y) * W);
+  const calm = reducedMotion.matches;
+
+  // Struck, not slid: three quarters of the ground goes in the first 40% of
+  // the flight, then it settles into the receiver.
   const flight = node.animate(
-    [
-      { transform: at(1, 1) },
-      { transform: at(0.35, 1.3), offset: 0.5 },
-      { transform: at(0, 1) },
-    ],
-    { duration: Math.min(700, 240 + travel * 9), easing: 'linear' },
+    calm
+      ? [{ transform: at(1, 1) }, { transform: at(0, 1) }]
+      : [
+        { transform: at(1, 1) },
+        { transform: at(0.25, 1.28), offset: 0.4 },
+        { transform: at(0, 1) },
+      ],
+    {
+      duration: calm ? 140 : Math.min(460, 110 + travel * 6.5),
+      easing: 'linear',
+    },
   );
 
   // A ball in flight passes straight over other players; letting it swallow
@@ -397,7 +408,9 @@ function hintMarkup(hint) {
   const radius = (parseFloat(getComputedStyle(board).getPropertyValue('--tok')) || 32) / 2;
   const pts = trimEnd(toPx([hint.from, hint.to]), radius + 2);
   const base = Math.max(2.5, Math.min(board.clientWidth, board.clientHeight) * 0.009);
-  const weight = hint.best ? base : base * 0.7;
+  // Shut lanes are drawn under the open ones, but a faint open lane crossing a
+  // black one still blends dark, so keep the black ones thinner as well.
+  const weight = hint.best ? base : base * (hint.own ? 0.55 : 0.7);
   const stroke = hint.own ? '#000000' : state.color;
   const opacity = Math.round(hint.fade * 100) / 100;
   const path = `M ${r2(pts[0][0])},${r2(pts[0][1])} L ${r2(pts[1][0])},${r2(pts[1][1])}`;
